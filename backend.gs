@@ -16,6 +16,54 @@
 // ==========================================
 
 function doGet(e) {
+  // ===== API HANDLER via GET (แก้ปัญหา CORS redirect) =====
+  if (e && e.parameter && e.parameter.payload) {
+    try {
+      initSheets();
+      const requestData = JSON.parse(e.parameter.payload);
+      const action = requestData.action;
+      const payload = requestData.data;
+      
+      let result = { success: false, message: "Action not found" };
+      
+      switch (action) {
+        case "login":
+          result = handleLogin(payload.pin);
+          break;
+        case "getInitialData":
+          result = handleGetInitialData();
+          break;
+        case "addDebtor":
+          result = handleAddDebtor(payload.debtor, payload.loan, payload.files);
+          break;
+        case "receivePayment":
+          result = handleReceivePayment(
+            payload.payment,
+            payload.loanId,
+            payload.debtorId,
+            payload.newRemainingPrincipal,
+            payload.isCompleted
+          );
+          break;
+        case "updateSettings":
+          result = handleUpdateSettings(payload.defaultInterestPerDay, payload.defaultMinimumDays);
+          break;
+        case "updatePin":
+          result = handleUpdatePin(payload.oldPin, payload.newPin);
+          break;
+      }
+      
+      return ContentService.createTextOutput(JSON.stringify(result))
+        .setMimeType(ContentService.MimeType.JSON);
+        
+    } catch (error) {
+      const errorResult = { success: false, message: "System Error: " + error.toString() };
+      return ContentService.createTextOutput(JSON.stringify(errorResult))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+  
+  // ===== STATUS PAGE (เปิด URL ตรงๆ ใน browser) =====
   return HtmlService.createHtmlOutput(
     "<div style='font-family: sans-serif; text-align: center; padding: 40px; color: #1F2937;'>" +
     "<h2 style='color: #C98B6F;'>DebtFlow API is Running Successfully</h2>" +
