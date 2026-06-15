@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>DebtFlow - ระบบบริหารลูกหนี้รายวัน</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast" class="toast">
+    <span id="toast-icon"></span>
+    <span id="toast-text">ข้อความแจ้งเตือน</span>
+  </div>
+
+  <!-- PIN LOGIN SCREEN -->
+  <div id="login-page">
+    <div class="login-header">
+      <div class="login-logo">DF</div>
+      <h1 class="login-title">DebtFlow</h1>
+      <p class="login-subtitle">ระบบบริหารลูกหนี้รายวันสำหรับเจ้าหนี้</p>
+    </div>
+    
+    <div class="pin-dots">
+      <div class="pin-dot" id="dot-1"></div>
+      <div class="pin-dot" id="dot-2"></div>
+      <div class="pin-dot" id="dot-3"></div>
+      <div class="pin-dot" id="dot-4"></div>
+    </div>
+
+    <div class="pin-keypad">
+      <button class="keypad-btn" onclick="pressPin('1')">1</button>
+      <button class="keypad-btn" onclick="pressPin('2')">2</button>
+      <button class="keypad-btn" onclick="pressPin('3')">3</button>
+      <button class="keypad-btn" onclick="pressPin('4')">4</button>
+      <button class="keypad-btn" onclick="pressPin('5')">5</button>
+      <button class="keypad-btn" onclick="pressPin('6')">6</button>
+      <button class="keypad-btn" onclick="pressPin('7')">7</button>
+      <button class="keypad-btn" onclick="pressPin('8')">8</button>
+      <button class="keypad-btn" onclick="pressPin('9')">9</button>
+      <button class="keypad-btn action" onclick="clearPin()">ล้าง</button>
+      <button class="keypad-btn" onclick="pressPin('0')">0</button>
+      <button class="keypad-btn action" onclick="backspacePin()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN APP CONTAINER -->
+  <div class="app-container">
+    
+    <!-- LOADING OVERLAY -->
+    <div id="loading-overlay" class="loading-overlay">
+      <div class="spinner"></div>
+      <div class="loading-text" id="loading-text">กำลังโหลดข้อมูล...</div>
+    </div>
+
+    <!-- 1. DASHBOARD PAGE -->
+    <main id="dashboard-page" class="app-page active">
+      <div class="page-title">
+        <span>สรุปภาพรวม</span>
+        <div id="db-connection-badge" class="mode-badge mode-mock">Mock Data</div>
+      </div>
+
+      <div class="dashboard-grid">
+        <div class="widget debtors">
+          <span class="widget-label">ลูกหนี้ที่ยังไม่ปิดยอด</span>
+          <span class="widget-value" id="stat-total-debtors">0 คน</span>
+        </div>
+        <div class="widget principal">
+          <span class="widget-label">เงินต้นคงเหลือรวม</span>
+          <span class="widget-value" id="stat-total-principal">฿0</span>
+        </div>
+        <div class="widget today">
+          <span class="widget-label">ยอดรับวันนี้</span>
+          <span class="widget-value" id="stat-today-received">฿0</span>
+        </div>
+        <div class="widget month">
+          <span class="widget-label">ยอดรับเดือนนี้</span>
+          <span class="widget-value" id="stat-month-received">฿0</span>
+        </div>
+      </div>
+
+      <!-- DAILY COLLECTION STATUS REPORT -->
+      <div class="card" style="padding: 16px; margin-bottom: 20px;">
+        <div class="section-header" style="margin-top:0; margin-bottom:12px;">
+          <span style="font-size:15px; font-weight:700;">รายงานเก็บเงินรายวัน</span>
+          <input type="date" id="report-date" class="form-control" style="height:36px; width:130px; padding:0 8px; font-size:13px; margin:0;" onchange="handleReportDateChange(this.value)">
+        </div>
+        
+        <div style="font-size:13px; color:var(--color-text-secondary); margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+          <span>เก็บเงินแล้ว: <strong id="report-progress" class="text-success" style="font-weight:700;">0/0 คน</strong></span>
+          <span style="font-size:12px; font-weight:700; padding:2px 8px; border-radius:10px; background:#F3F4F6;" id="report-percent">0%</span>
+        </div>
+
+        <!-- Progress bar -->
+        <div style="width:100%; height:6px; background:#E5E7EB; border-radius:3px; margin-bottom:16px; overflow:hidden;">
+          <div id="report-progress-bar" style="width:0%; height:100%; background:var(--color-success); transition:width 0.3s ease;"></div>
+        </div>
+
+        <div class="tabs-container" style="margin-bottom:12px; border-bottom:1px solid #E5E7EB;">
+          <button class="tab-btn active" id="btn-report-unpaid" onclick="switchReportTab('unpaid')" style="padding:8px 4px; font-size:13px; font-weight:700;">ยังไม่จ่าย (<span id="count-report-unpaid">0</span>)</button>
+          <button class="tab-btn" id="btn-report-paid" onclick="switchReportTab('paid')" style="padding:8px 4px; font-size:13px; font-weight:700;">จ่ายแล้ว (<span id="count-report-paid">0</span>)</button>
+        </div>
+
+        <div id="report-list-container" style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+          <!-- List items dynamically rendered -->
+        </div>
+      </div>
+
+      <div class="section-header">
+        <span>ลูกหนี้ล่าสุด</span>
+        <span class="section-link" onclick="switchTab('debtors')">ดูทั้งหมด</span>
+      </div>
+
+      <div id="recent-debtors-list">
+        <!-- JS inserts recent debtor cards here -->
+        <div class="empty-state">
+          <div class="empty-state-icon">👥</div>
+          <div class="empty-state-title">ไม่มีข้อมูลลูกหนี้</div>
+          <div class="empty-state-desc">กดปุ่ม + ด้านล่างขวาเพื่อเพิ่มลูกหนี้คนแรก</div>
+        </div>
+      </div>
+    </main>
+
+    <!-- 2. DEBTORS PAGE -->
+    <main id="debtors-page" class="app-page">
+      <h1 class="page-title">รายชื่อลูกหนี้</h1>
+      
+      <div class="tabs-container" style="margin-bottom: 16px;">
+        <button class="tab-btn active" id="btn-debtor-all" onclick="switchDebtorFilter('all')">ทั้งหมด</button>
+        <button class="tab-btn" id="btn-debtor-active" onclick="switchDebtorFilter('active')">กำลังกู้</button>
+        <button class="tab-btn" id="btn-debtor-closed" onclick="switchDebtorFilter('closed')">ปิดยอดแล้ว</button>
+      </div>
+
+      <div style="display: flex; gap: 8px; margin-bottom: 16px; align-items: center;">
+        <div class="search-container" style="flex: 1; margin-bottom: 0;">
+          <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" id="search-input" class="search-input" placeholder="ค้นหาชื่อ หรือเบอร์โทรศัพท์..." oninput="handleSearch(this.value)">
+          <button class="search-clear-btn" onclick="clearSearch('search-input', 'debtors')" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+        <button class="btn btn-secondary btn-icon-only" id="btn-layout-toggle" onclick="toggleDebtorsLayout()" style="height: 48px; width: 48px; display: flex; align-items: center; justify-content: center; padding: 0;" title="สลับมุมมอง รายการ / การ์ด">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="layout-toggle-icon"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div id="debtors-list">
+        <!-- JS inserts debtor cards here -->
+      </div>
+    </main>
+
+    <!-- 3. DEBTOR DETAILS PAGE -->
+    <main id="debtor-details-page" class="app-page">
+      <div class="page-title">
+        <button class="btn btn-secondary btn-icon-only" style="height:40px; width:40px; border-radius:50%;" onclick="goBackToDebtors()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        </button>
+        <span>รายละเอียดลูกหนี้</span>
+        <span class="status-badge status-active" id="detail-status">ปกติ</span>
+      </div>
+
+      <div class="card detail-header-card">
+        <div class="detail-avatar" id="detail-avatar">?</div>
+        <div class="detail-name" id="detail-name">ชื่อ-นามสกุล</div>
+        <a href="tel:" class="detail-phone-link" id="detail-phone">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+          <span id="detail-phone-text">000-000-0000</span>
+        </a>
+        <div class="detail-summary-grid">
+          <div class="info-item text-center">
+            <span class="info-label">เงินต้นคงเหลือ</span>
+            <span class="info-value" id="detail-stat-remaining" style="font-size: 18px; color: var(--color-primary);">฿0</span>
+          </div>
+          <div class="info-item text-center">
+            <span class="info-label" id="lbl-detail-stat-interest">ดอกเบี้ยต่อวัน</span>
+            <span class="info-value" id="detail-stat-interest" style="font-size: 18px;">฿0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="tabs-container">
+        <button class="tab-btn active" onclick="switchDetailTab('info')">ข้อมูลกู้ยืม</button>
+        <button class="tab-btn" onclick="switchDetailTab('history')">ประวัติชำระ</button>
+        <button class="tab-btn" onclick="switchDetailTab('docs')">เอกสารแนบ</button>
+      </div>
+
+      <!-- Detail Tab: Info -->
+      <div id="detail-tab-info" class="tab-content active">
+        <div class="card">
+          <div class="detail-info-list">
+            <div class="detail-info-row">
+              <span class="label">วันที่เริ่มกู้</span>
+              <span class="value" id="detail-loan-date">-</span>
+            </div>
+            <div class="detail-info-row">
+              <span class="label">เงินต้นแรกเริ่ม</span>
+              <span class="value" id="detail-principal">-</span>
+            </div>
+            <div class="detail-info-row">
+              <span class="label" id="lbl-detail-interest-day">ดอกเบี้ยรายวัน</span>
+              <span class="value" id="detail-interest-day">-</span>
+            </div>
+            <div class="detail-info-row">
+              <span class="label" id="lbl-detail-min-days">จำนวนวันขั้นต่ำ</span>
+              <span class="value" id="detail-min-days">-</span>
+            </div>
+            <div class="detail-info-row">
+              <span class="label">ดอกเบี้ยขั้นต่ำสะสม</span>
+              <span class="value text-warning" id="detail-min-interest">-</span>
+            </div>
+            <div class="detail-info-row">
+              <span class="label">เลขบัตรประชาชน</span>
+              <span class="value" id="detail-national-id">-</span>
+            </div>
+            <div class="detail-info-row">
+              <span class="label">อาชีพ</span>
+              <span class="value" id="detail-occupation">-</span>
+            </div>
+            <div class="detail-info-row">
+              <span class="label">ที่อยู่</span>
+              <span class="value" id="detail-address">-</span>
+            </div>
+            <div class="detail-info-row">
+              <span class="label">Facebook</span>
+              <span class="value" id="detail-facebook">-</span>
+            </div>
+            <div class="detail-info-row">
+              <span class="label">Line ID</span>
+              <span class="value" id="detail-line">-</span>
+            </div>
+            <div class="detail-info-row">
+              <span class="label">พิกัดแผนที่</span>
+              <span class="value" id="detail-map">-</span>
+            </div>
+            <div class="detail-info-row" style="border:none;">
+              <span class="label">หมายเหตุ</span>
+              <span class="value" id="detail-note">-</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="debtor-card-actions mb-4" id="detail-actions-panel">
+          <button class="btn btn-primary" id="detail-btn-pay">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect><line x1="12" y1="10" x2="12" y2="10"></line><line x1="8" y1="14" x2="16" y2="14"></line></svg>
+            รับเงินชำระ
+          </button>
+        </div>
+      </div>
+
+      <!-- Detail Tab: History -->
+      <div id="detail-tab-history" class="tab-content">
+        <div class="card" style="padding: 10px 16px;">
+          <div id="payment-history-list">
+            <!-- JS inserts payment history list here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Detail Tab: Documents -->
+      <div id="detail-tab-docs" class="tab-content">
+        <div class="doc-grid">
+          <div class="doc-card" onclick="viewDocument('idCard')">
+            <div class="doc-thumb" id="thumb-idcard">📂</div>
+            <div class="doc-title">บัตรประชาชน</div>
+          </div>
+          <div class="doc-card" onclick="viewDocument('houseReg')">
+            <div class="doc-thumb" id="thumb-housereg">📂</div>
+            <div class="doc-title">ทะเบียนบ้าน</div>
+          </div>
+          <div class="doc-card" onclick="viewDocument('house')">
+            <div class="doc-thumb" id="thumb-house">📂</div>
+            <div class="doc-title">รูปหน้าบ้าน</div>
+          </div>
+          <div class="doc-card" onclick="viewDocument('profile')">
+            <div class="doc-thumb" id="thumb-profile">📂</div>
+            <div class="doc-title">รูปลูกหนี้</div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- 2.5 PAYMENTS PAGE (ACTIVE DEBTORS ONLY) -->
+    <main id="payments-page" class="app-page">
+      <h1 class="page-title">รับชำระเงินวันนี้</h1>
+      
+      <div class="tabs-container" style="margin-bottom: 16px;">
+        <button class="tab-btn active" id="btn-pay-unpaid" onclick="switchPaymentsFilter('unpaid')">ยังไม่จ่ายวันนี้</button>
+        <button class="tab-btn" id="btn-pay-paid" onclick="switchPaymentsFilter('paid')">จ่ายแล้ววันนี้</button>
+        <button class="tab-btn" id="btn-pay-all" onclick="switchPaymentsFilter('all')">ทั้งหมด</button>
+      </div>
+
+      <div style="display: flex; gap: 8px; margin-bottom: 16px; align-items: center;">
+        <div class="search-container" style="flex: 1; margin-bottom: 0;">
+          <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" id="payments-search-input" class="search-input" placeholder="ค้นหาลูกหนี้ที่ต้องเก็บเงิน..." oninput="handlePaymentsSearch(this.value)">
+          <button class="search-clear-btn" onclick="clearSearch('payments-search-input', 'payments')" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+        <button class="btn btn-secondary btn-icon-only" id="btn-payments-layout-toggle" onclick="togglePaymentsLayout()" style="height: 48px; width: 48px; display: flex; align-items: center; justify-content: center; padding: 0;" title="สลับมุมมอง รายการ / การ์ด">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="payments-layout-toggle-icon"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div id="payments-active-list">
+        <!-- JS inserts active debtor quick payment cards here -->
+      </div>
+    </main>
+
+    <!-- 3.5 OVERDUE PAGE -->
+    <main id="overdue-page" class="app-page">
+      <h1 class="page-title">ลูกหนี้ค้างชำระ</h1>
+      
+      <div class="tabs-container" style="margin-bottom: 16px;">
+        <button class="tab-btn active" id="btn-overdue-all" onclick="switchOverdueFilter('all')">ทั้งหมด</button>
+        <button class="tab-btn" id="btn-overdue-3" onclick="switchOverdueFilter('3')">เกิน 3 วัน</button>
+        <button class="tab-btn" id="btn-overdue-7" onclick="switchOverdueFilter('7')">เกิน 7 วัน</button>
+        <button class="tab-btn" id="btn-overdue-15" onclick="switchOverdueFilter('15')">เกิน 15 วัน</button>
+      </div>
+
+      <div style="display: flex; gap: 8px; margin-bottom: 16px; align-items: center;">
+        <div class="search-container" style="flex: 1; margin-bottom: 0;">
+          <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" id="overdue-search-input" class="search-input" placeholder="ค้นหาชื่อ หรือเบอร์โทรศัพท์..." oninput="handleOverdueSearch(this.value)">
+          <button class="search-clear-btn" onclick="clearSearch('overdue-search-input', 'overdue')" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+        <button class="btn btn-secondary btn-icon-only" id="btn-overdue-layout-toggle" onclick="toggleOverdueLayout()" style="height: 48px; width: 48px; display: flex; align-items: center; justify-content: center; padding: 0;" title="สลับมุมมอง รายการ / การ์ด">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="overdue-layout-toggle-icon"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div id="overdue-list" style="display: flex; flex-direction: column; gap: 12px;">
+        <!-- JS inserts overdue debtor cards here -->
+      </div>
+    </main>
+
+    <!-- 4. SETTINGS PAGE -->
+    <main id="settings-page" class="app-page">
+      <h1 class="page-title">ตั้งค่าระบบ</h1>
+
+      <div class="card">
+        <div class="settings-section">
+          <h2 class="settings-section-title">ข้อมูลผู้ใช้งาน (Single User)</h2>
+          <div class="form-group">
+            <label class="form-label">PIN เข้าระบบเดิม (4 หลัก)</label>
+            <input type="password" id="set-pin-old" class="form-control" placeholder="ป้อน PIN เดิม" maxlength="4" pattern="[0-9]*" inputmode="numeric">
+          </div>
+          <div class="form-group">
+            <label class="form-label">PIN เข้าระบบใหม่ (4 หลัก)</label>
+            <input type="password" id="set-pin-new" class="form-control" placeholder="ป้อน PIN ใหม่ 4 หลัก" maxlength="4" pattern="[0-9]*" inputmode="numeric">
+          </div>
+          <button class="btn btn-primary w-full" onclick="updatePin()">อัปเดต PIN</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="settings-section">
+          <h2 class="settings-section-title">ค่าเริ่มต้นการกู้ยืม</h2>
+          <div class="form-group">
+            <label class="form-label">ดอกเบี้ยต่อวันเริ่มต้น (บาท)</label>
+            <input type="number" id="set-default-interest" class="form-control" placeholder="เช่น 100">
+          </div>
+          <div class="form-group">
+            <label class="form-label">จำนวนวันขั้นต่ำเริ่มต้น (วัน)</label>
+            <input type="number" id="set-default-min-days" class="form-control" placeholder="เช่น 5" value="5">
+          </div>
+          <button class="btn btn-primary w-full" onclick="updateLoanDefaults()">บันทึกค่าเริ่มต้น</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="settings-section">
+          <h2 class="settings-section-title">การเชื่อมต่อ Google Sheets</h2>
+          <div class="form-group">
+            <label class="form-label">Google Apps Script Web App URL</label>
+            <textarea id="set-api-url" class="form-control" placeholder="https://script.google.com/macros/s/.../exec" style="height:90px; font-size:12px;"></textarea>
+            <p style="font-size:11px; color:var(--color-text-secondary); margin-top:6px; line-height:1.4;">
+              * เมื่อระบุ URL และบันทึก ระบบจะยกเลิกการใช้ Mock Data และเชื่อมต่อกับ Google Sheet & Drive บนระบบจริงของคุณทันที (หากลบทิ้งจะกลับมาใช้ Mock Data)
+            </p>
+          </div>
+          <button class="btn btn-primary w-full" onclick="updateApiConnection()">เชื่อมต่อ API</button>
+        </div>
+      </div>
+
+      <div class="card" style="border: 2px dashed #F59E0B; background: rgba(245, 158, 11, 0.05);">
+        <div class="settings-section">
+          <h2 class="settings-section-title" style="color: #D97706;">🧪 โหมดทดสอบ (Test Mode)</h2>
+          <p style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 12px; line-height: 1.5;">
+            รีเซ็ตข้อมูลทั้งหมดและโหลดชุดข้อมูลทดสอบ <strong>Case A / B / C</strong><br>
+            สำหรับทดสอบการคำนวณยอดปิดบัญชี
+          </p>
+          <div style="font-size: 12px; background: rgba(245, 158, 11, 0.1); border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; line-height: 1.6;">
+            <strong>🅐 เคส A</strong> — กู้ 2,000 ดอก 50 ขั้นต่ำ 3 รอบ จ่าย 2 งวด → ยอดปิด <strong>฿1,650</strong><br>
+            <strong>🅑 เคส B</strong> — กู้ 2,000 ดอก 50 ขั้นต่ำ 4 รอบ จ่าย 2 งวด → ยอดปิด <strong>฿1,700</strong><br>
+            <strong>🅒 เคส C</strong> — กู้ 2,000 ดอก 50 ขั้นต่ำ 4 รอบ จ่าย 5 งวด → ยอดปิด <strong>฿900</strong>
+          </div>
+          <button class="btn w-full" id="btn-reset-mock-data" onclick="resetToMockData()" style="background: linear-gradient(135deg, #F59E0B, #D97706); color: white; font-weight: 600; height: 44px; border-radius: 10px;">
+            🔄 รีเซ็ต Mock Data ชุดทดสอบ
+          </button>
+        </div>
+      </div>
+
+      <div class="card" style="background-color: #F3F4F6; border:none;">
+        <div style="font-size:12px; color:var(--color-text-secondary); text-align:center;">
+          <strong>DebtFlow v1.0.0 (MVP)</strong><br>
+          ระบบจัดเก็บนน Google Drive/Sheets แบบปลอดภัย 100%<br>
+          <button class="btn btn-secondary mt-4" style="height:36px; max-width:150px; margin: 12px auto 0 auto;" onclick="logout()">ออกจากระบบ</button>
+        </div>
+      </div>
+    </main>
+
+    <!-- FLOATING ACTION BUTTON (FAB) FOR ADDING DEBTOR -->
+    <button class="fab" id="main-fab" onclick="openAddDebtorSheet()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+    </button>
+
+    <!-- BOTTOM NAVIGATION BAR -->
+    <nav class="bottom-nav" id="bottom-nav">
+      <button class="nav-item active" onclick="switchTab('dashboard')">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+        แดชบอร์ด
+      </button>
+      <button class="nav-item" onclick="switchTab('debtors')">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        ลูกหนี้
+      </button>
+      <button class="nav-item" onclick="switchTab('payments')">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2"></circle><line x1="6" y1="12" x2="6.01" y2="12"></line><line x1="18" y1="12" x2="18.01" y2="12"></line></svg>
+        รับชำระ
+      </button>
+      <button class="nav-item" onclick="switchTab('overdue')">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+        เกินชำระ
+      </button>
+      <button class="nav-item" onclick="switchTab('settings')">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        ตั้งค่า
+      </button>
+    </nav>
+
+  </div>
+
+  <!-- SLIDE-UP SHEET: ADD DEBTOR -->
+  <div id="add-debtor-sheet" class="sheet-overlay">
+    <div class="sheet-container">
+      <div class="sheet-header">
+        <span class="sheet-title">เพิ่มลูกหนี้ / สัญญาใหม่</span>
+        <button class="sheet-close" onclick="closeSheet('add-debtor-sheet')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div class="sheet-body">
+        <form id="add-debtor-form" onsubmit="submitAddDebtor(event)">
+          <!-- Required Section -->
+          <div class="section-header" style="margin-top:0;">ข้อมูลจำเป็น *</div>
+          
+          <div class="form-group">
+            <label class="form-label" for="add-fullName">ชื่อ-นามสกุล <span>*</span></label>
+            <input type="text" id="add-fullName" class="form-control" required placeholder="เช่น นายประหยัด สมใจ">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="add-phone">เบอร์โทรศัพท์ <span>*</span></label>
+            <input type="tel" id="add-phone" class="form-control" required placeholder="เช่น 0891234567" pattern="[0-9]{9,10}">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="add-loanDate">วันเริ่มสัญญา <span>*</span></label>
+              <input type="date" id="add-loanDate" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="add-frequency">รูปแบบการชำระเงิน <span>*</span></label>
+              <select id="add-frequency" class="form-control" required onchange="updateInterestFrequencyLabel(this.value)">
+                <option value="daily" selected>รายวัน</option>
+                <option value="weekly">รายสัปดาห์</option>
+                <option value="monthly">รายเดือน</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="add-principal">เงินต้น (บาท) <span>*</span></label>
+              <input type="number" id="add-principal" class="form-control" required min="1" placeholder="เช่น 5000">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="add-interest" id="lbl-add-interest">ดอกเบี้ยต่อวัน (บาท) <span>*</span></label>
+              <input type="number" id="add-interest" class="form-control" required min="1" placeholder="เช่น 100">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="add-minDays" id="lbl-add-minDays">จำนวนวันขั้นต่ำกู้ยืม (วัน) <span>*</span></label>
+            <input type="number" id="add-minDays" class="form-control" required min="1" placeholder="เช่น 5" value="5">
+          </div>
+
+          <!-- Optional Section -->
+          <div class="section-header">ข้อมูลเพิ่มเติม (ถ้ามี)</div>
+
+          <div class="form-group">
+            <label class="form-label" for="add-nationalId">เลขบัตรประชาชน</label>
+            <input type="text" id="add-nationalId" class="form-control" placeholder="เลข 13 หลัก" pattern="[0-9]{13}" maxlength="13" inputmode="numeric">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="add-occupation">อาชีพ</label>
+            <input type="text" id="add-occupation" class="form-control" placeholder="เช่น ค้าขาย, วินมอเตอร์ไซค์">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="add-address">ที่อยู่ / แหล่งอ้างอิง</label>
+            <textarea id="add-address" class="form-control" placeholder="บ้านเลขที่ ถนน ซอย..."></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="add-facebook">Facebook</label>
+              <input type="text" id="add-facebook" class="form-control" placeholder="ชื่อ Facebook">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="add-lineId">Line ID</label>
+              <input type="text" id="add-lineId" class="form-control" placeholder="ไอดีไลน์">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="add-googleMap">ลิงก์แผนที่ Google Maps</label>
+            <input type="url" id="add-googleMap" class="form-control" placeholder="https://goo.gl/maps/...">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="add-note">หมายเหตุเพิ่มเติม</label>
+            <textarea id="add-note" class="form-control" placeholder="ข้อมูลเสริมเพื่อการทวงถาม..."></textarea>
+          </div>
+
+          <!-- Upload Files Section -->
+          <div class="section-header">เอกสารแนบและรูปถ่าย (สูงสุด 5MB/รูป)</div>
+          
+          <div class="form-group">
+            <div class="upload-grid">
+              
+              <!-- ID Card Upload -->
+              <div class="upload-card" onclick="triggerFileInput('file-idcard')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="4"></line><line x1="8" y1="2" x2="8" y2="4"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                <span>รูปบัตรประชาชน</span>
+                <div class="upload-preview" id="preview-idcard"></div>
+                <input type="file" id="file-idcard" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="handleFileSelect(this, 'idcard')">
+                <button type="button" class="upload-remove-btn" onclick="removeUploadedFile(event, 'idcard', 'file-idcard')">×</button>
+              </div>
+
+              <!-- House Registration Upload -->
+              <div class="upload-card" onclick="triggerFileInput('file-housereg')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                <span>รูปทะเบียนบ้าน</span>
+                <div class="upload-preview" id="preview-housereg"></div>
+                <input type="file" id="file-housereg" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="handleFileSelect(this, 'housereg')">
+                <button type="button" class="upload-remove-btn" onclick="removeUploadedFile(event, 'housereg', 'file-housereg')">×</button>
+              </div>
+
+              <!-- House Photo Upload -->
+              <div class="upload-card" onclick="triggerFileInput('file-house')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                <span>รูปหน้าบ้าน</span>
+                <div class="upload-preview" id="preview-house"></div>
+                <input type="file" id="file-house" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="handleFileSelect(this, 'house')">
+                <button type="button" class="upload-remove-btn" onclick="removeUploadedFile(event, 'house', 'file-house')">×</button>
+              </div>
+
+              <!-- Profile Photo Upload -->
+              <div class="upload-card" onclick="triggerFileInput('file-profile')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <span>รูปลูกหนี้ / ข้อมูลย่อ</span>
+                <div class="upload-preview" id="preview-profile"></div>
+                <input type="file" id="file-profile" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="handleFileSelect(this, 'profile')">
+                <button type="button" class="upload-remove-btn" onclick="removeUploadedFile(event, 'profile', 'file-profile')">×</button>
+              </div>
+
+            </div>
+          </div>
+          
+          <button type="submit" style="display:none;" id="hidden-submit-btn"></button>
+        </form>
+      </div>
+      <div class="sheet-footer">
+        <button class="btn btn-secondary" onclick="closeSheet('add-debtor-sheet')">ยกเลิก</button>
+        <button class="btn btn-primary" onclick="document.getElementById('hidden-submit-btn').click()">บันทึกข้อมูลสัญญา</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE-UP SHEET: RECEIVE PAYMENT -->
+  <div id="payment-sheet" class="sheet-overlay">
+    <div class="sheet-container" style="height:auto; max-height:85%;">
+      <div class="sheet-header">
+        <span class="sheet-title">รับชำระเงิน</span>
+        <button class="sheet-close" onclick="closeSheet('payment-sheet')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div class="sheet-body">
+        <form id="payment-form" onsubmit="submitPayment(event)">
+          <input type="hidden" id="pay-loan-id">
+          <input type="hidden" id="pay-debtor-id">
+          
+          <div class="form-group" style="background-color:#F9FAFB; padding:12px; border-radius:var(--border-radius); border:1px solid #E5E7EB; margin-bottom:16px;">
+            <div class="form-label" style="margin-bottom:2px;">ผู้กู้ยืม</div>
+            <div class="font-bold" id="pay-debtor-name" style="font-size:16px;">นายสมคิด ยิ้มแย้ม</div>
+            <div class="text-secondary" style="font-size:12px; margin-top:4px; display:flex; justify-content:space-between;">
+              <span>เงินต้นคงเหลือ: <strong id="pay-debtor-remaining" class="text-danger">฿0</strong></span>
+              <span><span id="lbl-pay-debtor-interest">ดอกเบี้ยต่อวัน</span>: <strong id="pay-debtor-interest">฿0</strong></span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="pay-amount">จำนวนเงินรับชำระ (บาท) <span>*</span></label>
+            <div style="display: flex; gap: 8px;">
+              <input type="number" id="pay-amount" class="form-control" required min="1" placeholder="ระบุยอดรับเงิน เช่น 300" oninput="calculatePaymentPreview(this.value)" style="flex: 1; border-radius: 0;">
+              <button type="button" class="btn btn-secondary" id="btn-pay-close-loan" style="height: 48px; border-radius: 0; font-size: 13px; font-weight: 600; white-space: nowrap; padding: 0 12px; display: flex; align-items: center; justify-content: center; border: 1px solid #D1D5DB; background-color: #F9FAFB;" onclick="fillPayoffAmount()">
+                ⚡ ปิดยอดทันที
+              </button>
+            </div>
+            <!-- OVERPAYMENT WARNING BADGE -->
+            <div id="payment-warning" class="text-warning font-bold" style="font-size:12px; margin-top:8px; display:none; padding: 8px 12px; background: rgba(245, 158, 11, 0.1); border-radius: 8px;"></div>
+          </div>
+
+          <!-- PAYMENT PREVIEW BOX -->
+          <div class="payment-preview-box">
+            <div class="payment-preview-title">ตัวอย่างการหักยอดชำระ</div>
+            <div class="payment-preview-row">
+              <span class="label">ยอดชำระทั้งหมด:</span>
+              <span class="value" id="preview-total">฿0.00</span>
+            </div>
+            <div class="payment-preview-row">
+              <span class="label">หักดอกเบี้ยก่อน:</span>
+              <span class="value text-warning" id="preview-interest-paid">฿0.00</span>
+            </div>
+            <div class="payment-preview-row">
+              <span class="label">หักเงินต้นที่เหลือ:</span>
+              <span class="value text-success" id="preview-principal-paid">฿0.00</span>
+            </div>
+            <div class="payment-preview-row highlight">
+              <span class="label">เงินต้นคงเหลือใหม่:</span>
+              <span class="value" id="preview-remaining-principal">฿0.00</span>
+            </div>
+          </div>
+          
+          <button type="submit" style="display:none;" id="hidden-pay-submit-btn"></button>
+        </form>
+      </div>
+      <div class="sheet-footer">
+        <button class="btn btn-secondary" onclick="closeSheet('payment-sheet')">ยกเลิก</button>
+        <button class="btn btn-primary" onclick="document.getElementById('hidden-pay-submit-btn').click()">บันทึกรับชำระ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: IMAGE VIEWER -->
+  <div id="image-viewer-modal" class="image-viewer-modal" onclick="closeImageViewer()">
+    <button class="viewer-close-btn" onclick="closeImageViewer()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+    </button>
+    <img src="" alt="Full Screen Image" class="viewer-image" id="viewer-image">
+    <div class="viewer-title" id="viewer-title">รายละเอียดรูปภาพ</div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
