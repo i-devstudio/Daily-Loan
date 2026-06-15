@@ -299,9 +299,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function loadMockData() {
   appData.settings = JSON.parse(localStorage.getItem("df_settings")) || { ...mockSettings };
-  appData.debtors = JSON.parse(localStorage.getItem("df_debtors")) || [ ...mockDebtors ];
-  appData.loans = JSON.parse(localStorage.getItem("df_loans")) || [ ...mockLoans ];
-  appData.payments = JSON.parse(localStorage.getItem("df_payments")) || [ ...mockPayments ];
+  appData.debtors = JSON.parse(localStorage.getItem("df_debtors")) || [];
+  appData.loans = JSON.parse(localStorage.getItem("df_loans")) || [];
+  appData.payments = JSON.parse(localStorage.getItem("df_payments")) || [];
   
   // Save mock data locally to simulate persistence
   saveLocalCache();
@@ -333,6 +333,22 @@ function resetToMockData() {
   saveLocalCache();
   refreshData();
   showToast("✅ รีเซ็ต Mock Data สำเร็จ — โหลดชุดทดสอบ A/B/C แล้ว", "success");
+}
+
+function clearAllLocalData() {
+  if (!confirm("⚠️ คุณต้องการลบข้อมูลลูกหนี้ สัญญา และประวัติการชำระเงินทั้งหมดที่บันทึกไว้ในเครื่องนี้ใช่หรือไม่? (ข้อมูลจะเริ่มใหม่เป็น 0 คน)")) return;
+  
+  localStorage.removeItem("df_debtors");
+  localStorage.removeItem("df_loans");
+  localStorage.removeItem("df_payments");
+  
+  appData.debtors = [];
+  appData.loans = [];
+  appData.payments = [];
+  
+  saveLocalCache();
+  refreshData();
+  showToast("🗑️ ล้างข้อมูลทั้งหมดเรียบร้อยแล้ว", "success");
 }
 
 function initSettingsInputs() {
@@ -2672,3 +2688,5 @@ window.handleReportDateChange = handleReportDateChange;
 window.handleSearch = handleSearch;
 window.openReceivePaymentModal = openReceivePaymentModal;
 window.viewDebtorDetails = viewDebtorDetails;
+window.clearAllLocalData = clearAllLocalData;
+
