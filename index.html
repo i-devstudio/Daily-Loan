@@ -62,7 +62,7 @@
     <main id="dashboard-page" class="app-page active">
       <div class="page-title">
         <span>สรุปภาพรวม</span>
-        <div id="db-connection-badge" class="mode-badge mode-mock">Mock Data</div>
+        <div id="db-connection-badge" class="mode-badge mode-mock">โหมดออฟไลน์</div>
       </div>
 
       <div class="dashboard-grid">
@@ -389,23 +389,14 @@
         </div>
       </div>
 
-      <div class="card" style="border: 2px dashed #F59E0B; background: rgba(245, 158, 11, 0.05);">
+      <div class="card">
         <div class="settings-section">
-          <h2 class="settings-section-title" style="color: #D97706;">🧪 โหมดทดสอบ (Test Mode)</h2>
-          <p style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 12px; line-height: 1.5;">
-            รีเซ็ตข้อมูลทั้งหมดและโหลดชุดข้อมูลทดสอบ <strong>Case A / B / C</strong><br>
-            สำหรับทดสอบการคำนวณยอดปิดบัญชี
+          <h2 class="settings-section-title" style="color: var(--color-danger);">จัดการข้อมูลในเครื่อง</h2>
+          <p style="font-size: 11px; color: var(--color-text-secondary); margin-bottom: 12px; line-height: 1.4;">
+            * ใช้สำหรับล้างข้อมูลแคชที่บันทึกชั่วคราวในอุปกรณ์เครื่องนี้เท่านั้น (ไม่มีผลกระทบต่อข้อมูลจริงใน Google Sheets)
           </p>
-          <div style="font-size: 12px; background: rgba(245, 158, 11, 0.1); border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; line-height: 1.6;">
-            <strong>🅐 เคส A</strong> — กู้ 2,000 ดอก 50 ขั้นต่ำ 3 รอบ จ่าย 2 งวด → ยอดปิด <strong>฿1,650</strong><br>
-            <strong>🅑 เคส B</strong> — กู้ 2,000 ดอก 50 ขั้นต่ำ 4 รอบ จ่าย 2 งวด → ยอดปิด <strong>฿1,700</strong><br>
-            <strong>🅒 เคส C</strong> — กู้ 2,000 ดอก 50 ขั้นต่ำ 4 รอบ จ่าย 5 งวด → ยอดปิด <strong>฿900</strong>
-          </div>
-          <button class="btn w-full" id="btn-reset-mock-data" onclick="resetToMockData()" style="background: linear-gradient(135deg, #F59E0B, #D97706); color: white; font-weight: 600; height: 44px; border-radius: 10px;">
-            🔄 โหลด Mock Data ชุดทดสอบ (เคส A/B/C)
-          </button>
-          <button class="btn w-full" id="btn-clear-mock-data" onclick="clearAllLocalData()" style="background: #EF4444; color: white; font-weight: 600; height: 44px; border-radius: 10px; border: none; margin-top: 10px;">
-            🗑️ ล้างข้อมูลทั้งหมดและเริ่มแบบว่างเปล่า
+          <button class="btn w-full" onclick="clearAllLocalData()" style="background-color: #EF4444; color: white; font-weight: 600; height: 44px; border-radius: 10px; border: none;">
+            🗑️ ล้างข้อมูลเครื่องนี้และเริ่มใหม่
           </button>
         </div>
       </div>

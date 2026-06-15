@@ -4,6 +4,9 @@
 let enteredPin = "";
 let apiMode = false;
 let apiUrl = "";
+let isSubmittingDebtor = false;
+let isSubmittingPayment = false;
+
 
 // Daily report states
 let currentReportDate = "";
@@ -441,7 +444,7 @@ async function verifyPin() {
       if (enteredPin === appData.settings.pinCode) {
         sessionStorage.setItem("df_logged_in", "true");
         document.getElementById("login-page").style.display = "none";
-        showToast("ยินดีต้อนรับเข้าสู่ระบบ (Mock Mode)");
+        showToast("ยินดีต้อนรับเข้าสู่ระบบ (โหมดออฟไลน์)");
         refreshData();
       } else {
         showToast("รหัส PIN ไม่ถูกต้อง", "danger");
@@ -488,7 +491,11 @@ function switchTab(tabId) {
   });
 
   // Action triggers for specific tabs
-  if (tabId === "payments") {
+  if (tabId === "dashboard") {
+    renderDashboard();
+  } else if (tabId === "debtors") {
+    renderDebtorsList();
+  } else if (tabId === "payments") {
     renderPaymentsList();
   } else if (tabId === "overdue") {
     renderOverdueList();
@@ -572,7 +579,7 @@ async function refreshData() {
       renderDebtorDetails(activeDebtorId);
     }
   } catch (err) {
-    showToast("ไม่สามารถโหลดข้อมูลจาก API ได้ (กำลังใช้โหมดจำลองแทน)", "danger");
+    showToast("ไม่สามารถโหลดข้อมูลจาก API ได้ (กำลังใช้โหมดออฟไลน์)", "danger");
     console.error("API error, fallback to local:", err);
   } finally {
     hideLoading();
@@ -636,17 +643,16 @@ function renderDashboard() {
         <div class="empty-state-desc">กดปุ่ม + ด้านล่างขวาเพื่อเพิ่มลูกหนี้คนแรก</div>
       </div>
     `;
-    return;
+  } else {
+    let html = "";
+    activeDebtors.forEach(debtor => {
+      const loan = appData.loans.find(l => l.debtorId === debtor.debtorId && l.status === "active");
+      if (loan) {
+        html += createDebtorCardHtml(debtor, loan);
+      }
+    });
+    recentDebtorsContainer.innerHTML = html;
   }
-  
-  let html = "";
-  activeDebtors.forEach(debtor => {
-    const loan = appData.loans.find(l => l.debtorId === debtor.debtorId && l.status === "active");
-    if (loan) {
-      html += createDebtorCardHtml(debtor, loan);
-    }
-  });
-  recentDebtorsContainer.innerHTML = html;
 
   // Render Daily Report status
   renderDailyReport();
@@ -1648,6 +1654,8 @@ function clearFilePreviews() {
 // Submit debtor add form
 async function submitAddDebtor(e) {
   e.preventDefault();
+  if (isSubmittingDebtor) return;
+  isSubmittingDebtor = true;
   
   const fullName = document.getElementById("add-fullName").value.trim();
   const phone = document.getElementById("add-phone").value.trim();
@@ -1746,7 +1754,7 @@ async function submitAddDebtor(e) {
       appData.loans.unshift(newLoan);
       saveLocalCache();
       
-      showToast("เพิ่มข้อมูลลูกหนี้จำลองเรียบร้อยแล้ว");
+      showToast("เพิ่มข้อมูลลูกหนี้เรียบร้อยแล้ว");
       closeSheet("add-debtor-sheet");
       refreshData();
     }
@@ -1754,6 +1762,7 @@ async function submitAddDebtor(e) {
     console.error(err);
     showToast("เกิดข้อผิดพลาดในการดำเนินงาน", "danger");
   } finally {
+    isSubmittingDebtor = false;
     hideLoading();
   }
 }
@@ -1935,6 +1944,8 @@ function calculatePaymentPreview(amount) {
 // Submit Payment (with overpayment cap and minimum days interest guarantee)
 async function submitPayment(e) {
   e.preventDefault();
+  if (isSubmittingPayment) return;
+  isSubmittingPayment = true;
   
   const loanId = document.getElementById("pay-loan-id").value;
   const debtorId = document.getElementById("pay-debtor-id").value;
@@ -2072,7 +2083,7 @@ async function submitPayment(e) {
       }
       
       saveLocalCache();
-      showToast("บันทึกยอดชำระเงินจำลองเรียบร้อยแล้ว");
+      showToast("บันทึกยอดชำระเงินเรียบร้อยแล้ว");
       closeSheet("payment-sheet");
       refreshData();
     }
@@ -2080,6 +2091,7 @@ async function submitPayment(e) {
     console.error(err);
     showToast("เกิดข้อผิดพลาดในการดำเนินการ", "danger");
   } finally {
+    isSubmittingPayment = false;
     hideLoading();
   }
 }
@@ -2320,7 +2332,7 @@ async function updatePin() {
       } else {
         appData.settings.pinCode = newPin;
         saveLocalCache();
-        showToast("อัปเดตรหัส PIN จำลองเรียบร้อยแล้ว");
+        showToast("อัปเดตรหัส PIN เรียบร้อยแล้ว");
         document.getElementById("set-pin-old").value = "";
         document.getElementById("set-pin-new").value = "";
       }
@@ -2361,7 +2373,7 @@ async function updateLoanDefaults() {
       appData.settings.defaultInterestPerDay = interest;
       appData.settings.defaultMinimumDays = minDays;
       saveLocalCache();
-      showToast("บันทึกค่าเริ่มต้นจำลองสำเร็จ");
+      showToast("บันทึกค่าเริ่มต้นสำเร็จ");
     }
   } catch (err) {
     console.error(err);
@@ -2381,12 +2393,12 @@ function updateApiConnection() {
     apiMode = false;
     
     const badge = document.getElementById("db-connection-badge");
-    badge.innerText = "Mock Data";
+    badge.innerText = "โหมดออฟไลน์";
     badge.className = "mode-badge mode-mock";
     
     loadMockData();
     refreshData();
-    showToast("กลับเข้าสู่โหมดใช้งานข้อมูลจำลอง (Mock Data)");
+    showToast("กลับเข้าสู่โหมดออฟไลน์ (Offline Mode)");
   } else {
     // Test format
     if (!urlVal.startsWith("https://script.google.com/macros/s/")) {
