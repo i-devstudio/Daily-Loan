@@ -2634,3 +2634,41 @@ function clearSearch(inputId, searchType) {
   }
 }
 
+// Expose functions to window for inline HTML event handlers (due to ES module scope in Vite build)
+window.pressPin = pressPin;
+window.clearPin = clearPin;
+window.backspacePin = backspacePin;
+window.switchReportTab = switchReportTab;
+window.switchTab = switchTab;
+window.switchDebtorFilter = switchDebtorFilter;
+window.clearSearch = clearSearch;
+window.toggleDebtorsLayout = toggleDebtorsLayout;
+window.goBackToDebtors = goBackToDebtors;
+window.switchDetailTab = switchDetailTab;
+window.viewDocument = viewDocument;
+window.switchPaymentsFilter = switchPaymentsFilter;
+window.handlePaymentsSearch = handlePaymentsSearch;
+window.togglePaymentsLayout = togglePaymentsLayout;
+window.switchOverdueFilter = switchOverdueFilter;
+window.handleOverdueSearch = handleOverdueSearch;
+window.toggleOverdueLayout = toggleOverdueLayout;
+window.updatePin = updatePin;
+window.updateLoanDefaults = updateLoanDefaults;
+window.updateApiConnection = updateApiConnection;
+window.resetToMockData = resetToMockData;
+window.logout = logout;
+window.openAddDebtorSheet = openAddDebtorSheet;
+window.submitAddDebtor = submitAddDebtor;
+window.updateInterestFrequencyLabel = updateInterestFrequencyLabel;
+window.triggerFileInput = triggerFileInput;
+window.handleFileSelect = handleFileSelect;
+window.removeUploadedFile = removeUploadedFile;
+window.submitPayment = submitPayment;
+window.calculatePaymentPreview = calculatePaymentPreview;
+window.fillPayoffAmount = fillPayoffAmount;
+window.closeSheet = closeSheet;
+window.closeImageViewer = closeImageViewer;
+window.handleReportDateChange = handleReportDateChange;
+window.handleSearch = handleSearch;
+window.openReceivePaymentModal = openReceivePaymentModal;
+window.viewDebtorDetails = viewDebtorDetails;
